@@ -1,30 +1,36 @@
 //to add pixel resize
 // istead of picking a portion of the image show the image as a long strip
+import processing.serial.*;
 import controlP5.*;
 ControlP5 cp5;
 Range range;
+Serial therm;
 Dither d;
 PWindow win;
 PFont mono;
-String ditherToString = "";
+String ditherToString = "", thermID = "/dev/tty.usbserial";
 boolean getImage = false, radialGradient = true;
 float [][] ditherKernel = {{0, 0, 0 }, {0, 0, 0.0}, {0.0, 0.0, 0.0}};
 float pix1 = 0, pix2 = 0, pix3 = 0, pix4 = 0, prev1 = 0, prev2 = 0, prev3 = 0, prev4 = 0;
-int charXline = 42, p, x = 0; //the maximum number of chars the plotter can print in each line
+int p, x = 0, hexCount = 0; //the maximum number of chars the plotter can print in each line
 void settings() {
   size(800, 800);
 }
 void setup() {
   //fullScreen();
   mono = createFont("courier", 8, true);
+  therm = new Serial(this, thermID, 9600);
+  thermInit();
   d = new Dither();
   p = d.pixSize;//get the value of the pixel size
   cp5 = new ControlP5(this);
   win = new PWindow();
   initControllers();
+  background(51);
   noFill();
 }
-void draw() {
+void draw() {  
+  background(51);
   //here we check if the value of the kernel has been changed if yes
   //the previous value is updated to the new value and we generate a new dither
   //with the new values
@@ -43,23 +49,27 @@ void draw() {
   }
   d.displayDither();
   //////////////////////////////////
-  x = floor(map(mouseX, 0, width, 1, d.dither.width - charXline));
-  if (getImage)showImageToPrint();
+  x = floor(map(mouseX, 0, width, 1, d.dither.width - d.charXline));
+  //if (getImage)showImageToPrint();
 }
 
 void keyPressed() {
-  if (key == ' ')getImage = !getImage;
+  if (key == ' ') {
+    printImage(d.dither.get(1, 1, d.charXline, d.dither.height - 1));
+    thermPrint(ditherToString);
+    //getImage = !getImage;
+  }
 }
 
 void mouseClicked() {
-  if (getImage)printImage(d.dither.get(x, 1, charXline, d.dither.height - 1));
+  if (getImage)printImage(d.dither.get(x, 1, d.charXline, d.dither.height - 1));
 }
 
-void showImageToPrint() {
-  stroke(0, 255, 0);
-  strokeWeight(3);
-  rect(x * p, p, p * charXline, height - 2 * p);
-}
+//void showImageToPrint() {
+//  stroke(0, 255, 0);
+//  strokeWeight(3);
+//  rect(x * p, p, p * d.charXline, height - 2 * p);
+//}
 //
 void printImage(PImage img) {
   ditherToString = "";
@@ -72,22 +82,95 @@ void printImage(PImage img) {
     //String h = "\u005C";
     //String s = b < 150 ? "/" : "|"; //black square and white square
     //String s = b < 150 ? "1" : "0"; //black square and white square
-    String s = b < 150 ? "\u2588" : "\u202F";//black square and white square sourceCodePro
+    String s = b < 150 ? "a" : "b";
+    //String s = b < 150 ? "\u2588" : "\u202F";//black square and white square sourceCodePro
     //String s = b < 150 ? "\u25E2" : "\u25E3";//triangle different rotation really nice
-    if (i > 1 && i % 42 == 0)ditherToString = ditherToString.concat("\n");
+    //if (i > 1 && i % 42 == 0)ditherToString = ditherToString.concat("\n");
     ditherToString = ditherToString.concat(s);
   }
 }
+//
+void thermInit() {
+  byte[] d;
+  d = new byte[] {0x1B, 0x40};
+  therm.write(d);
+}
+//
+void thermPrint(String img) {//String Title, String myText, 
+  byte[] d;
+  d = new byte[] {
+    0x1B, 0x40, 0x1B, 0x61, byte(1), 
+  };
+  for(int i = 0; i < img.length(); i++){
+    if (i > 1 && i % 42 == 0)therm.write("\n");
+    if(img.charAt(i) == 'a')therm.write(0xDB);//fullblack
+    else therm.write(0xB0);//semi-white
+  }
+  //therm.write(0xDB);//fullBlack
+  //therm.write(0xDB);//white
+  //therm.write(0xB0);
+  //therm.write(0xB0);
+  //therm.write(img + "\n\n");
+  therm.write(d);
+  //// set print mode (2xwidth, 2xheight, emph)  
+  //therm.write(0x1B); // ESC
+  //therm.write(0x21); // !
+  //therm.write(48); // double-height
+
+  //therm.write(Title + "\n\n"); // header horoscope
+  //therm.write("/////////////////////\n");
+  //// set print mode (default)  
+  //therm.write(0x1B); // ESC
+  //therm.write(0x21); // !
+  //therm.write(0); // double-height
+
+  ////therm.write("MORE TEXT\n");
+  //therm.write(0x0A); //LF
+  //therm.write(0x0D); //CR
+  //therm.write(myText); //here comes the horoscope text
+  //therm.write(0x0A); //LF
+
+
+  //// set print mode (2xwidth, 2xheight, emph)  
+  //therm.write(0x1B); // ESC
+  //therm.write(0x21); // !
+  //therm.write(56); // double-height
+  //therm.write("\n/////////////////////\n\n");
+  //// set print mode (default)  
+  //therm.write(0x1B); // ESC
+  //therm.write(0x21); // !
+  //therm.write(0); // double-height
+  //therm.write("Horoscopes by Rob Brezsny\n@ freewillastrology.com");
+  //therm.write("\nTexts composed with RiTa 1.12\n@ rednoise.org/rita");
+  //therm.write(0x1B); // ESC
+  //therm.write(0x21); // !
+  //therm.write(0); // default
+
+  therm.write(0x0A); //LF
+  //therm.write("Last line of text.. then feed some lines and cut!");
+  therm.write(0x0A); //LF
+  therm.write(0x0A); //LF
+  therm.write(0x0A); //LF
+  therm.write(0x0D); //CR
+  therm.write(0x1D); //GS
+  therm.write(0x56); //V
+  therm.write(66); //
+  therm.write(3); //3 lines
+}
+
 //cp5 control event to set factor and the color of the gradient
 void controlEvent(ControlEvent theControlEvent) {
   if (theControlEvent.isFrom("FACTOR")) {
     float fac = theControlEvent.getController().getValue();
     d.setFactor(fac);
-    println(fac);
   }
   if (theControlEvent.isFrom("RADIAL")) {
     radialGradient = !radialGradient;
     d.setRadiant(radialGradient);
+  }
+  if (theControlEvent.isFrom("PIXEL SIZE")) {
+    int PS = (int)theControlEvent.getController().getValue();
+    d.setPixelSize(PS);
   }
   if (theControlEvent.isFrom("COLORS")) {
     // min and max values are stored in an array.
@@ -109,7 +192,7 @@ void initControllers() {
     // disable broadcasting since setRange and setRangeValues will trigger an event
     .setBroadcast(false) 
     .setPosition(20, 50)
-    .setSize(400, 40)
+    .setSize(200, 40)
     .setHandleSize(10)
     .setRange(0, 255)
     .setRangeValues(50, 100)
@@ -162,10 +245,21 @@ void initControllers() {
     .setColorForeground(grey)
     .setColorBackground(black)
     .setColorCaptionLabel(green);
+  //pixel size controller
+  cp5.addSlider("PIXEL SIZE")
+    .setPosition(20, top + 150)
+    .setRange(1, 10)
+    .setSize(200, 30)
+    .setColorCaptionLabel(green)
+    .setValue(10)
+    .setNumberOfTickMarks(10)
+    .setColorForeground(grey)
+    .setColorBackground(black)
+    .setColorCaptionLabel(green);
   // radial gradient button
   cp5.addButton("RADIAL")
     .setValue(0)
-    .setPosition(20, top + 150)
+    .setPosition(20, top + 200)
     .setSize(200, 19)
     .setColorForeground(grey)
     .setColorBackground(black)

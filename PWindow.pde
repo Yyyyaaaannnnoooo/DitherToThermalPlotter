@@ -5,7 +5,7 @@ class PWindow extends PApplet {
   }
 
   void settings() {
-    size(600, 800);
+    size(300, 800);
   }
   void setup() {
     surface.setTitle("YOUR AMAZING FACE!!!");

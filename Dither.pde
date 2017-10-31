@@ -1,5 +1,5 @@
 class Dither {
-  int pixSize = 5;
+  int pixSize = 10, charXline = 42;
   float factor = 16;
   float [][] kernel;
   boolean isRadiant = false;
@@ -14,9 +14,12 @@ class Dither {
     big = nearestN(dither, pixSize);
   }
   void displayDither() {
-    image(big, 0, 0);
+    image(big, 270, 0);
   }
   void setPixelSize(int PS) {
+    pixSize = PS;
+    initDither(pixSize);
+    generateDither();
   }
   void setColor(color c1, color c2) {
     col1 = c1;
@@ -38,9 +41,9 @@ class Dither {
     generateDither();
   }
   void initDither(int num) {    
-    dither = createImage(floor(width / num), floor(height / num), RGB);
-    big = createImage(floor(width / num), floor(height / num), RGB);
-    gradient = createImage(floor(width / num), floor(height / num), RGB);
+    dither = createImage(floor(charXline), floor(height / num), RGB);
+    big = createImage(floor(charXline), floor(height / num), RGB);
+    gradient = createImage(floor(charXline), floor(height / num), RGB);
     kernel = new float [3][3];
     kernel = STEINBERG;
     gradient = gradient(gradient, col1, col2, isRadiant);
@@ -244,7 +247,7 @@ class Dither {
         //kernel loop//
         for ( int yy = 0; yy < num; yy++) {
           for ( int xx = 0; xx < num; xx++) {
-            destination.pixels[((nX + xx) + destination.width * (nY + yy))] =img.pixels[i];
+            destination.pixels[((nX + xx) + destination.width * (nY + yy))] = img.pixels[i];
           }
         }
       }
